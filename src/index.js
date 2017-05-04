@@ -11,7 +11,7 @@ if (helpParameter) {
     process.exit(2);
 }
 
-const configFile = process.argv[2] || './librarity.config.json';
+const configFile = process.argv[2] || './librarity.config.js';
 const config = require('./config.js')(configFile);
 
 require('./processor.js')(config);

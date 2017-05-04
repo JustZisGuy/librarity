@@ -1,6 +1,6 @@
 {
     "name": "librarity",
-    "description": "Generates README.md from template using config file and supports importing external files into template",
+    "description": "Tool to create README.md from template and include external files as code blocks",
     "keywords": [
         "readme",
         "template",
@@ -35,7 +35,7 @@
         "nyc": "^10.2.0"
     },
     "scripts": {
-        "eslint": "eslint src test examples scripts",
+        "eslint": "eslint src test",
         "readme": "node dist/index.js README.template.md README.md",
         "test": "nyc --reporter=html --reporter=text ava test/*.js",
         "coverage": "nyc report --reporter=text-lcov | coveralls",

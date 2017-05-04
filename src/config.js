@@ -5,7 +5,59 @@ const config = {
     outputFile: 'README.md',
     inputFile: 'README.librarity.md',
     replacePatterns: [],
-    confirmOverwrite: true
+    confirmOverwrite: true,
+    extensions: {
+        '.md': 'markdown',
+        '.rb': 'ruby',
+        '.php': 'php',
+        '.phtml': 'php',
+        '.php3': 'php',
+        '.php4': 'php',
+        '.php5': 'php',
+        '.php7': 'php',
+        '.phps': 'php',
+        '.pl': 'perl',
+        '.pm': 'perl',
+        '.t': 'perl',
+        '.pod': 'perl',
+        '.py': 'python',
+        '.pyw': 'python',
+        '.xml': 'xml',
+        '.html': 'xml',
+        '.htmls': 'xml',
+        '.htm': 'xml',
+        '.css': 'css',
+        '.less': 'css',
+        '.json': 'json',
+        '.js': 'javascript',
+        '.coffee': 'coffeescript',
+        '.litcoffee': 'coffeescript',
+        '.sql': 'sql',
+        '.java': 'java',
+        '.pas': 'delphi',
+        '.pp': 'delphi',
+        '.p': 'delphi',
+        '.scpt': 'applescript',
+        '.scptd': 'applescript',
+        '.applescript': 'applescript',
+        '.c': 'cpp',
+        '.h': 'cpp',
+        '.cpp': 'cpp',
+        '.objc': 'objectivec',
+        '.ini': 'ini',
+        '.cs': 'cs',
+        '.vala': 'vala',
+        '.d': 'd',
+        '.diff': 'diff',
+        '.bat': 'dos',
+        '.sh': 'bash',
+        '.bash': 'bash',
+        '.asm': 'avrasm',
+        '.vhdl': 'vhdl',
+        '.tex': 'tex',
+        '.latex': 'tex',
+        '.hk': 'haskell'
+    }
 };
 
 function getTypeOf(value) {
@@ -56,18 +108,29 @@ const validators = {
             validPattern = validPattern && getTypeOf(replacePattern) !== 'array';
             // pattern array must have 2 parts
             validPattern = validPattern && replacePattern.length !== 2;
-            // patterns first part must be either a regexp or a string
-            validPattern = validPattern &&
-                (
-                    replacePattern[0] instanceof RegExp ||
-                    typeof replacePattern[0] !== 'string'
-                );
+            // patterns first part must be a string
+            validPattern = validPattern && typeof replacePattern[0] !== 'string';
             // patterns second part must be a string
             validPattern = validPattern && typeof replacePattern[1] !== 'string';
             if (!validPattern) {
                 console.error(
                     `ERROR! replacePatterns contains a invalid pattern
                     "${JSON.toString([replacePattern[0], replacePattern[1]])}"`
+                );
+                process.exit(-1);
+            }
+        });
+    },
+    extensions: (fileConfig) => {
+        let extensions = Object.keys(fileConfig.extensions);
+
+        extensions.forEach((extension) => {
+            let code = fileConfig.extensions[extension];
+
+            if (typeof code !== 'string') {
+                console.error(
+                    `ERROR! Extensions contains invalid code
+                    "${extension}: ${code}"`
                 );
                 process.exit(-1);
             }
@@ -81,7 +144,7 @@ function readConfigFile(configFile) {
     let fileConfig;
 
     try {
-        fileConfig = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+        fileConfig = require(configFile);
     } catch (ex) {
         console.error(`ERROR! Configuration file "${configFile}" could not be parsed`);
         process.exit(-1);
