@@ -1,14 +1,5 @@
-(function webpackUniversalModuleDefinition(root, factory) {
-	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory();
-	else if(typeof define === 'function' && define.amd)
-		define([], factory);
-	else {
-		var a = factory();
-		for(var i in a) (typeof exports === 'object' ? exports : root)[i] = a[i];
-	}
-})(this, function() {
-return /******/ (function(modules) { // webpackBootstrap
+#!/usr/bin/env node
+(function(e, a) { for(var i in a) e[i] = a[i]; }(exports, /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
 /******/
@@ -73,61 +64,201 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 2);
+/******/ 	return __webpack_require__(__webpack_require__.s = 4);
 /******/ })
 /************************************************************************/
 /******/ ([
 /* 0 */
 /***/ (function(module, exports) {
 
-var g;
-
-// This works in non-strict mode
-g = (function() {
-	return this;
-})();
-
-try {
-	// This works if eval is allowed (see CSP)
-	g = g || Function("return this")() || (1,eval)("this");
-} catch(e) {
-	// This works if the window reference is available
-	if(typeof window === "object")
-		g = window;
-}
-
-// g can still be undefined, but nothing to do about it...
-// We return undefined, instead of nothing here, so it's
-// easier to handle this case. if(!global) { ...}
-
-module.exports = g;
-
+module.exports = require("fs");
 
 /***/ }),
 /* 1 */
-/***/ (function(module, exports) {
+/***/ (function(module, exports, __webpack_require__) {
 
-module.exports = function(module) {
-	if(!module.webpackPolyfill) {
-		module.deprecate = function() {};
-		module.paths = [];
-		// module.parent = undefined by default
-		if(!module.children) module.children = [];
-		Object.defineProperty(module, "loaded", {
-			enumerable: true,
-			get: function() {
-				return module.l;
-			}
-		});
-		Object.defineProperty(module, "id", {
-			enumerable: true,
-			get: function() {
-				return module.i;
-			}
-		});
-		module.webpackPolyfill = 1;
-	}
-	return module;
+/* eslint-disable no-console */
+const fs = __webpack_require__(0);
+
+const config = {
+    outputFile: 'README.md',
+    inputFile: 'README.librarity.md',
+    replacePatterns: [],
+    confirmOverwrite: true,
+    extensions: {
+        '.md': 'markdown',
+        '.rb': 'ruby',
+        '.php': 'php',
+        '.phtml': 'php',
+        '.php3': 'php',
+        '.php4': 'php',
+        '.php5': 'php',
+        '.php7': 'php',
+        '.phps': 'php',
+        '.pl': 'perl',
+        '.pm': 'perl',
+        '.t': 'perl',
+        '.pod': 'perl',
+        '.py': 'python',
+        '.pyw': 'python',
+        '.xml': 'xml',
+        '.html': 'xml',
+        '.htmls': 'xml',
+        '.htm': 'xml',
+        '.css': 'css',
+        '.less': 'css',
+        '.json': 'json',
+        '.js': 'javascript',
+        '.coffee': 'coffeescript',
+        '.litcoffee': 'coffeescript',
+        '.sql': 'sql',
+        '.java': 'java',
+        '.pas': 'delphi',
+        '.pp': 'delphi',
+        '.p': 'delphi',
+        '.scpt': 'applescript',
+        '.scptd': 'applescript',
+        '.applescript': 'applescript',
+        '.c': 'cpp',
+        '.h': 'cpp',
+        '.cpp': 'cpp',
+        '.objc': 'objectivec',
+        '.ini': 'ini',
+        '.cs': 'cs',
+        '.vala': 'vala',
+        '.d': 'd',
+        '.diff': 'diff',
+        '.bat': 'dos',
+        '.sh': 'bash',
+        '.bash': 'bash',
+        '.asm': 'avrasm',
+        '.vhdl': 'vhdl',
+        '.tex': 'tex',
+        '.latex': 'tex',
+        '.hk': 'haskell'
+    }
+};
+
+function getTypeOf(value) {
+    let keyType = typeof value;
+
+    if (keyType === 'object' && Array.isArray(value)) {
+        keyType = 'array';
+    }
+    return keyType;
+}
+
+function exitOnMismatch(key, fileConfig) {
+    let expectedKeyType = getTypeOf(config[key]);
+    let actualKeyType = getTypeOf(fileConfig[key]);
+
+    if (expectedKeyType === 'undefined') {
+        return;
+    }
+
+    if (expectedKeyType !== actualKeyType) {
+        console.error(
+            `ERROR! Configuration key "${key}" ` +
+            `can only be a "${expectedKeyType}" value, ` +
+            `"${actualKeyType}" found`
+        );
+        process.exit(1);
+    }
+}
+
+const validators = {
+    outputFile: (fileConfig) => {
+        try {
+            fs.accessSync(fileConfig.outputFile, fs.constants.W_OK);
+        } catch (ex) {
+            console.error('ERROR! outputFile is not writable');
+            process.exit(1);
+        }
+    },
+    inputFile: (fileConfig) => {
+        try {
+            fs.accessSync(fileConfig.inputFile, fs.constants.R_OK);
+        } catch (ex) {
+            console.error('ERROR! inputFile is missing or not readable');
+            process.exit(1);
+        }
+    },
+    replacePatterns: (fileConfig) => {
+        fileConfig.replacePatterns.forEach((replacePattern) => {
+            let validPattern = true;
+
+            // pattern must be a array
+            validPattern = validPattern && getTypeOf(replacePattern) === 'array';
+            // pattern array must have 2 parts
+            validPattern = validPattern && replacePattern.length === 2;
+            // patterns first part must be a string or a regex
+            validPattern = validPattern && (
+                typeof replacePattern[0] === 'string' ||
+                replacePattern[0] instanceof RegExp
+            );
+            // patterns second part must be a string
+            validPattern = validPattern && typeof replacePattern[1] === 'string';
+            if (!validPattern) {
+                console.error(
+                    'ERROR! replacePatterns contains a invalid pattern ' +
+                    `"[${replacePattern[0]}, ${replacePattern[1]}]"`
+                );
+                process.exit(-1);
+            }
+        });
+    },
+    extensions: (fileConfig) => {
+        let extensions = Object.keys(fileConfig.extensions);
+
+        extensions.forEach((extension) => {
+            let code = fileConfig.extensions[extension];
+
+            if (typeof code !== 'string') {
+                console.error(
+                    `ERROR! Extensions contains invalid code "${extension}: ${code}"`
+                );
+                process.exit(1);
+            }
+        });
+    },
+    // this has already been validated
+    confirmOverwrite: () => {}
+};
+
+function readConfigFile(configFile) {
+    let fileConfig;
+
+    try {
+        fileConfig = !(function webpackMissingModule() { var e = new Error("Cannot find module \".\""); e.code = 'MODULE_NOT_FOUND'; throw e; }());
+    } catch (ex) {
+        console.error(`ERROR! Configuration file "${configFile}" could not be parsed`);
+        process.exit(1);
+    }
+    const fileConfigKeys = Object.keys(fileConfig);
+
+    fileConfigKeys.forEach((key) => {
+        exitOnMismatch(key, fileConfig);
+        let hasValidator = validators.hasOwnProperty(key);
+
+        if (hasValidator) {
+            validators[key](fileConfig);
+        } else {
+            console.error(
+                `ERROR! Invalid configuration key "${key}"`
+            );
+            process.exit(1);
+        }
+        config[key] = fileConfig[key];
+    });
+}
+
+module.exports = (configFile) => {
+    if (fs.existsSync(configFile, fs.constants.R_OK)) {
+        readConfigFile(configFile);
+    } else {
+        console.error('WARNING! Configuration file not found, using defaults.');
+    }
+    return config;
 };
 
 
@@ -135,9 +266,145 @@ module.exports = function(module) {
 /* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
-/* WEBPACK VAR INJECTION */(function(global, module) {try {global.process.dlopen(module, "/home/monk/Dropbox/Projects/js/librarity/src/index.js"); } catch(e) {throw new Error('Cannot open ' + "/home/monk/Dropbox/Projects/js/librarity/src/index.js" + ': ' + e);}
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0), __webpack_require__(1)(module)))
+/* eslint-disable no-console */
+const fs = __webpack_require__(0);
+const path = __webpack_require__(5);
+const templateRegex = /\{\{.*?\}\}/g;
+
+function replacePatterns(config, input) {
+    let output = input;
+
+    config.replacePatterns.forEach((pattern) => {
+        output = output.replace(pattern[0], pattern[1]);
+    });
+    return output;
+}
+
+function replaceMatch(input, includedFile, config) {
+    let language = '';
+    let output = input;
+    let extension = path.extname(includedFile);
+
+    fs.accessSync(includedFile, fs.constants.R_OK);
+
+    if (config.extensions.hasOwnProperty(extension)) {
+        language = config.extensions[extension];
+    }
+    let includedContents = fs.readFileSync(includedFile, 'utf8');
+
+    includedContents = replacePatterns(config, includedContents);
+    output = output.replace(
+        `{{${includedFile}}}`,
+        `\`\`\`${language}\n${includedContents}\n\`\`\``
+    );
+    return output;
+}
+
+function replaceMatches(config, input) {
+    let output = input;
+    let regexResult = output
+        .match(templateRegex);
+
+    if (regexResult === null) {
+        return output;
+    }
+    let matches = regexResult.map((pathPattern) => pathPattern.replace(/\{\{|\}\}/g, ''));
+
+    for (let matchIndex = 0; matchIndex < matches.length; matchIndex++) {
+        let includedFile = matches[matchIndex];
+
+        output = replaceMatch(output, includedFile, config);
+    }
+    return output;
+}
+
+function confirmOverwrite(config, output) {
+    const readline = __webpack_require__(6);
+
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+
+    rl.question(
+        `WARNING! Continuing will overwrite any preexistant
+            file at ${config.outputFile}.\nProceed? [Y/n]`,
+        (answer) => {
+            if (answer === 'Y' || answer === 'y') {
+                fs.writeFileSync(config.outputFile, output, 'utf8');
+            }
+        });
+    rl.close();
+}
+
+function processor(config) {
+    let output;
+
+    try {
+        output = fs.readFileSync(config.inputFile, 'utf8');
+    } catch (ex) {
+        console.error(`ERROR! Configuration file "${config.inputFile}" could not be read`);
+        process.exit(1);
+    }
+    output = replaceMatches(config, output);
+
+    if (config.confirmOverwrite) {
+        confirmOverwrite(config, output);
+    } else {
+        fs.writeFileSync(config.outputFile, output, 'utf8');
+    }
+}
+
+module.exports = processor;
+
+
+/***/ }),
+/* 3 */
+/***/ (function(module, exports) {
+
+function webpackEmptyContext(req) {
+	throw new Error("Cannot find module '" + req + "'.");
+}
+webpackEmptyContext.keys = function() { return []; };
+webpackEmptyContext.resolve = webpackEmptyContext;
+module.exports = webpackEmptyContext;
+webpackEmptyContext.id = 3;
+
+/***/ }),
+/* 4 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* eslint-disable no-console */
+
+const helpParameter = process.argv[2] && process.argv[2] === '--help';
+
+function printHelp() {
+    console.error('Usage: librarity [path to config]');
+}
+
+if (helpParameter) {
+    printHelp();
+    process.exit(2);
+}
+const configFile = process.argv[2] ?
+    `${process.cwd()}/${process.argv[2]}` :
+    './librarity.config.js';
+const config = __webpack_require__(1)(configFile);
+
+__webpack_require__(2)(config);
+
+
+/***/ }),
+/* 5 */
+/***/ (function(module, exports) {
+
+module.exports = require("path");
+
+/***/ }),
+/* 6 */
+/***/ (function(module, exports) {
+
+module.exports = require("readline");
 
 /***/ })
-/******/ ]);
-});
+/******/ ])));

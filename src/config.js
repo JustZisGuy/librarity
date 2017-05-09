@@ -73,11 +73,15 @@ function exitOnMismatch(key, fileConfig) {
     let expectedKeyType = getTypeOf(config[key]);
     let actualKeyType = getTypeOf(fileConfig[key]);
 
+    if (expectedKeyType === 'undefined') {
+        return;
+    }
+
     if (expectedKeyType !== actualKeyType) {
         console.error(
-            `ERROR! Configuration key "${key}"
-            can only be a "${expectedKeyType}" value,
-            "${actualKeyType}" found`
+            `ERROR! Configuration key "${key}" ` +
+            `can only be a "${expectedKeyType}" value, ` +
+            `"${actualKeyType}" found`
         );
         process.exit(1);
     }
@@ -117,8 +121,8 @@ const validators = {
             validPattern = validPattern && typeof replacePattern[1] === 'string';
             if (!validPattern) {
                 console.error(
-                    `ERROR! replacePatterns contains a invalid pattern
-                    "${JSON.toString([replacePattern[0], replacePattern[1]])}"`
+                    'ERROR! replacePatterns contains a invalid pattern ' +
+                    `"[${replacePattern[0]}, ${replacePattern[1]}]"`
                 );
                 process.exit(-1);
             }
@@ -132,8 +136,7 @@ const validators = {
 
             if (typeof code !== 'string') {
                 console.error(
-                    `ERROR! Extensions contains invalid code
-                    "${extension}: ${code}"`
+                    `ERROR! Extensions contains invalid code "${extension}: ${code}"`
                 );
                 process.exit(1);
             }
@@ -162,8 +165,7 @@ function readConfigFile(configFile) {
             validators[key](fileConfig);
         } else {
             console.error(
-                `ERROR! Invalid configuration key "${key}",
-                valid keys are ${fileConfigKeys.join(', ')}`
+                `ERROR! Invalid configuration key "${key}"`
             );
             process.exit(1);
         }
@@ -172,10 +174,9 @@ function readConfigFile(configFile) {
 }
 
 module.exports = (configFile) => {
-    try {
-        fs.accessSync(configFile, fs.constants.R_OK);
+    if (fs.existsSync(configFile, fs.constants.R_OK)) {
         readConfigFile(configFile);
-    } catch (ex) {
+    } else {
         console.error('WARNING! Configuration file not found, using defaults.');
     }
     return config;

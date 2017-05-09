@@ -29,9 +29,8 @@
     },
     "scripts": {
         "eslint": "eslint src test",
-        "readme": "node dist/index.js README.template.md README.md",
         "test": "nyc --reporter=html --reporter=text ava test/*.js",
         "coverage": "nyc report --reporter=text-lcov | coveralls",
-        "build": "npm run eslint && npm test && npm run readme && webpack"
+        "build": "npm run eslint && npm test && webpack"
     }
 }

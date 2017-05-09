@@ -1,10 +1,9 @@
-#!/usr/bin/env node
 /* eslint-disable no-console */
 
 const helpParameter = process.argv[2] && process.argv[2] === '--help';
 
 function printHelp() {
-    console.error('Usage: librarity [path]');
+    console.error('Usage: librarity [path to config]');
 }
 
 if (helpParameter) {

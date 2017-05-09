@@ -10,8 +10,9 @@ console.log('test', test);
 ```
 
 ```javascript
+/* eslint-disable no-console */
 
-const test = require('wildling');
+const test = require('../src');
 
 console.log('test', test);
 

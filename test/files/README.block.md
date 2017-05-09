@@ -9,10 +9,4 @@ const test = require('../src');
 console.log('test', test);
 ```
 
-```javascript
-
-const test = require('wildling');
-
-console.log('test', test);
-
-```
+{{test/files/included_unsupported_extension.block}}

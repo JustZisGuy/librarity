@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 const fs = require('fs');
+const path = require('path');
 const templateRegex = /\{\{.*?\}\}/g;
 
 function replacePatterns(config, input) {
@@ -8,6 +9,26 @@ function replacePatterns(config, input) {
     config.replacePatterns.forEach((pattern) => {
         output = output.replace(pattern[0], pattern[1]);
     });
+    return output;
+}
+
+function replaceMatch(input, includedFile, config) {
+    let language = '';
+    let output = input;
+    let extension = path.extname(includedFile);
+
+    fs.accessSync(includedFile, fs.constants.R_OK);
+
+    if (config.extensions.hasOwnProperty(extension)) {
+        language = config.extensions[extension];
+    }
+    let includedContents = fs.readFileSync(includedFile, 'utf8');
+
+    includedContents = replacePatterns(config, includedContents);
+    output = output.replace(
+        `{{${includedFile}}}`,
+        `\`\`\`${language}\n${includedContents}\n\`\`\``
+    );
     return output;
 }
 
@@ -24,14 +45,7 @@ function replaceMatches(config, input) {
     for (let matchIndex = 0; matchIndex < matches.length; matchIndex++) {
         let includedFile = matches[matchIndex];
 
-        fs.accessSync(includedFile, fs.constants.R_OK);
-        let includedContents = fs.readFileSync(includedFile, 'utf8');
-
-        includedContents = replacePatterns(config, includedContents);
-        output = output.replace(
-            `{{${includedFile}}}`,
-            `\`\`\`js\n${includedContents}\n\`\`\``
-        );
+        output = replaceMatch(output, includedFile, config);
     }
     return output;
 }
@@ -58,7 +72,12 @@ function confirmOverwrite(config, output) {
 function processor(config) {
     let output;
 
-    output = fs.readFileSync(config.inputFile, 'utf8');
+    try {
+        output = fs.readFileSync(config.inputFile, 'utf8');
+    } catch (ex) {
+        console.error(`ERROR! Configuration file "${config.inputFile}" could not be read`);
+        process.exit(1);
+    }
     output = replaceMatches(config, output);
 
     if (config.confirmOverwrite) {

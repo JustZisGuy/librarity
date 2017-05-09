@@ -5,16 +5,11 @@ module.exports = {
     entry: './src/index.js',
     output: {
         path: __dirname,
-        libraryTarget: 'umd',
+        libraryTarget: 'commonjs',
         filename: 'dist/index.js'
     },
-    module: {
-        loaders: [
-            {
-                test: /.js?$/,
-                loader: 'node-loader',
-                exclude: /node_modules/
-            }
-        ]
-    },
+    target: 'node',
+    plugins: [
+        new webpack.BannerPlugin({banner: '#!/usr/bin/env node', raw: true})
+    ]
 };
