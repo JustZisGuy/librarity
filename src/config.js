@@ -79,7 +79,7 @@ function exitOnMismatch(key, fileConfig) {
             can only be a "${expectedKeyType}" value,
             "${actualKeyType}" found`
         );
-        process.exit(-1);
+        process.exit(1);
     }
 }
 
@@ -89,7 +89,7 @@ const validators = {
             fs.accessSync(fileConfig.outputFile, fs.constants.W_OK);
         } catch (ex) {
             console.error('ERROR! outputFile is not writable');
-            process.exit(-1);
+            process.exit(1);
         }
     },
     inputFile: (fileConfig) => {
@@ -97,7 +97,7 @@ const validators = {
             fs.accessSync(fileConfig.inputFile, fs.constants.R_OK);
         } catch (ex) {
             console.error('ERROR! inputFile is missing or not readable');
-            process.exit(-1);
+            process.exit(1);
         }
     },
     replacePatterns: (fileConfig) => {
@@ -105,13 +105,16 @@ const validators = {
             let validPattern = true;
 
             // pattern must be a array
-            validPattern = validPattern && getTypeOf(replacePattern) !== 'array';
+            validPattern = validPattern && getTypeOf(replacePattern) === 'array';
             // pattern array must have 2 parts
-            validPattern = validPattern && replacePattern.length !== 2;
-            // patterns first part must be a string
-            validPattern = validPattern && typeof replacePattern[0] !== 'string';
+            validPattern = validPattern && replacePattern.length === 2;
+            // patterns first part must be a string or a regex
+            validPattern = validPattern && (
+                typeof replacePattern[0] === 'string' ||
+                replacePattern[0] instanceof RegExp
+            );
             // patterns second part must be a string
-            validPattern = validPattern && typeof replacePattern[1] !== 'string';
+            validPattern = validPattern && typeof replacePattern[1] === 'string';
             if (!validPattern) {
                 console.error(
                     `ERROR! replacePatterns contains a invalid pattern
@@ -132,7 +135,7 @@ const validators = {
                     `ERROR! Extensions contains invalid code
                     "${extension}: ${code}"`
                 );
-                process.exit(-1);
+                process.exit(1);
             }
         });
     },
@@ -147,7 +150,7 @@ function readConfigFile(configFile) {
         fileConfig = require(configFile);
     } catch (ex) {
         console.error(`ERROR! Configuration file "${configFile}" could not be parsed`);
-        process.exit(-1);
+        process.exit(1);
     }
     const fileConfigKeys = Object.keys(fileConfig);
 
@@ -156,13 +159,13 @@ function readConfigFile(configFile) {
         let hasValidator = validators.hasOwnProperty(key);
 
         if (hasValidator) {
-            validators[key](configFile);
+            validators[key](fileConfig);
         } else {
             console.error(
                 `ERROR! Invalid configuration key "${key}",
                 valid keys are ${fileConfigKeys.join(', ')}`
             );
-            process.exit(-1);
+            process.exit(1);
         }
         config[key] = fileConfig[key];
     });
@@ -173,7 +176,7 @@ module.exports = (configFile) => {
         fs.accessSync(configFile, fs.constants.R_OK);
         readConfigFile(configFile);
     } catch (ex) {
-        console.warn('Warning! Configuration file not found, using defaults.');
+        console.error('WARNING! Configuration file not found, using defaults.');
     }
     return config;
 };

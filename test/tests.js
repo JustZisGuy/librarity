@@ -8,7 +8,7 @@ const util = require('util');
 const argv = process.argv;
 
 // the following variables provides control of the cli program flow
-// let writeFileContents;
+let writeFileContents;
 let writeFileFail;
 let consoleError;
 
@@ -18,10 +18,9 @@ function StubException(message) {
 }
 
 function resetFlowVariables() {
-    // writeFileContents = '';
+    writeFileContents = '';
     writeFileFail = false;
     consoleError = '';
-    console.warn(consoleError);
 }
 
 test.beforeEach(() => {
@@ -34,8 +33,7 @@ test.beforeEach(() => {
             throw new StubException('writeFileSync Failed');
         }
         if (outFile) {
-            console.warn(output);
-            // writeFileContents = output;
+            writeFileContents = output;
         }
     });
 });
@@ -43,6 +41,8 @@ test.beforeEach(() => {
 test.afterEach(() => {
     console.error.restore();
     clearRequire('../src/index.js');
+    clearRequire('../src/config.js');
+    clearRequire('../src/processor.js');
     process.argv = argv;
     fs.writeFileSync.restore();
 });
@@ -65,12 +65,11 @@ test('Default config without a existing README.librarity.md fails', (t) => {
     }
 });
 
-/* test('Error is shown when inputFile does not exist', (t) => {
+test('The config with a non-existant inputFile fails', (t) => {
     process.argv = [
         'node',
         './dist/index.js',
-        'test/readme_files/NO.README.template.md',
-        'outFile'
+        'test/files/failing.config.js'
     ];
     sinon.stub(process, 'exit').callsFake((code) => {
         throw new StubException(code);
@@ -89,12 +88,11 @@ test('Default config without a existing README.librarity.md fails', (t) => {
     }
 });
 
-test('Error is shown when writeFileSync fails', (t) => {
+test('The config with a proper config file but with a write error', (t) => {
     process.argv = [
         'node',
         './dist/index.js',
-        'test/readme_files/README.template.md',
-        'outFile'
+        'test/files/successful.config.js'
     ];
     writeFileFail = true;
     sinon.stub(process, 'exit').callsFake((code) => {
@@ -110,14 +108,11 @@ test('Error is shown when writeFileSync fails', (t) => {
     }
 });
 
-test('pattern matching works', (t) => {
-    const targetContents = fs.readFileSync('test/readme_files/README.md', 'utf8');
-
+test('The config with a proper config file and write permission', (t) => {
     process.argv = [
         'node',
         './dist/index.js',
-        'test/readme_files/README.template.md',
-        'outFile'
+        'test/files/successful.config.js'
     ];
     sinon.stub(process, 'exit').callsFake((code) => {
         throw new StubException(code);
@@ -125,9 +120,9 @@ test('pattern matching works', (t) => {
     try {
         require('../src/index.js');
         process.exit.restore();
-        t.is(targetContents, writeFileContents);
+        t.is(fs.readFileSync('test/files/README.successful.out.md', 'utf8'), writeFileContents);
     } catch (ex) {
         process.exit.restore();
         t.fail(ex);
     }
-});*/
+});
