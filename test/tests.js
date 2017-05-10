@@ -362,3 +362,22 @@ test('File without {{...}} blocks are returned as is', (t) => {
         t.fail(ex);
     }
 });
+
+test('A broken config throws an error', (t) => {
+    process.argv = [
+        'node',
+        './dist/index.js',
+        'test/files/broken.config.js'
+    ];
+    sinon.stub(process, 'exit').callsFake((code) => {
+        throw new StubException(code);
+    });
+    try {
+        require('../src/index.js');
+        process.exit.restore();
+        t.fail();
+    } catch (ex) {
+        process.exit.restore();
+        t.pass(ex);
+    }
+});
