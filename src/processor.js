@@ -17,18 +17,23 @@ function replaceMatch(input, includedFile, config) {
     let output = input;
     let extension = path.extname(includedFile);
 
-    fs.accessSync(includedFile, fs.constants.R_OK);
+    try {
+        fs.accessSync(includedFile, fs.constants.R_OK);
 
-    if (config.extensions.hasOwnProperty(extension)) {
-        language = config.extensions[extension];
+        if (config.extensions.hasOwnProperty(extension)) {
+            language = config.extensions[extension];
+        }
+        let includedContents = fs.readFileSync(includedFile, 'utf8');
+
+        includedContents = replacePatterns(config, includedContents);
+        output = output.replace(
+            `{{${includedFile}}}`,
+            `\`\`\`${language}\n${includedContents}\n\`\`\``
+        );
+    } catch (ex) {
+        console.warn(`WARNING! Match {{${includedFile}}} did not have a ` +
+            'corresponding file');
     }
-    let includedContents = fs.readFileSync(includedFile, 'utf8');
-
-    includedContents = replacePatterns(config, includedContents);
-    output = output.replace(
-        `{{${includedFile}}}`,
-        `\`\`\`${language}\n${includedContents}\n\`\`\``
-    );
     return output;
 }
 

@@ -79,71 +79,17 @@ module.exports = require("fs");
 
 /* eslint-disable no-console */
 const fs = __webpack_require__(0);
-
-const config = {
-    outputFile: 'README.md',
-    inputFile: 'README.librarity.md',
-    replacePatterns: [],
-    confirmOverwrite: true,
-    extensions: {
-        '.md': 'markdown',
-        '.rb': 'ruby',
-        '.php': 'php',
-        '.phtml': 'php',
-        '.php3': 'php',
-        '.php4': 'php',
-        '.php5': 'php',
-        '.php7': 'php',
-        '.phps': 'php',
-        '.pl': 'perl',
-        '.pm': 'perl',
-        '.t': 'perl',
-        '.pod': 'perl',
-        '.py': 'python',
-        '.pyw': 'python',
-        '.xml': 'xml',
-        '.html': 'xml',
-        '.htmls': 'xml',
-        '.htm': 'xml',
-        '.css': 'css',
-        '.less': 'css',
-        '.json': 'json',
-        '.js': 'javascript',
-        '.coffee': 'coffeescript',
-        '.litcoffee': 'coffeescript',
-        '.sql': 'sql',
-        '.java': 'java',
-        '.pas': 'delphi',
-        '.pp': 'delphi',
-        '.p': 'delphi',
-        '.scpt': 'applescript',
-        '.scptd': 'applescript',
-        '.applescript': 'applescript',
-        '.c': 'cpp',
-        '.h': 'cpp',
-        '.cpp': 'cpp',
-        '.objc': 'objectivec',
-        '.ini': 'ini',
-        '.cs': 'cs',
-        '.vala': 'vala',
-        '.d': 'd',
-        '.diff': 'diff',
-        '.bat': 'dos',
-        '.sh': 'bash',
-        '.bash': 'bash',
-        '.asm': 'avrasm',
-        '.vhdl': 'vhdl',
-        '.tex': 'tex',
-        '.latex': 'tex',
-        '.hk': 'haskell'
-    }
-};
+const vm = __webpack_require__(7);
+const config = __webpack_require__(3);
 
 function getTypeOf(value) {
     let keyType = typeof value;
 
     if (keyType === 'object' && Array.isArray(value)) {
         keyType = 'array';
+    }
+    if (keyType === 'object' && value.constructor.name === 'RegExp') {
+        keyType = 'regex';
     }
     return keyType;
 }
@@ -194,8 +140,9 @@ const validators = {
             // patterns first part must be a string or a regex
             validPattern = validPattern && (
                 typeof replacePattern[0] === 'string' ||
-                replacePattern[0] instanceof RegExp
+                getTypeOf(replacePattern[0]) === 'regex'
             );
+
             // patterns second part must be a string
             validPattern = validPattern && typeof replacePattern[1] === 'string';
             if (!validPattern) {
@@ -229,7 +176,15 @@ function readConfigFile(configFile) {
     let fileConfig;
 
     try {
-        fileConfig = !(function webpackMissingModule() { var e = new Error("Cannot find module \".\""); e.code = 'MODULE_NOT_FOUND'; throw e; }());
+        let code = fs.readFileSync(configFile, 'utf8');
+        let sandbox = vm.createContext({
+            module: {
+                exports: 0
+            }
+        });
+
+        vm.runInContext(code, sandbox);
+        fileConfig = Object.assign({}, sandbox.module.exports);
     } catch (ex) {
         console.error(`ERROR! Configuration file "${configFile}" could not be parsed`);
         process.exit(1);
@@ -285,18 +240,23 @@ function replaceMatch(input, includedFile, config) {
     let output = input;
     let extension = path.extname(includedFile);
 
-    fs.accessSync(includedFile, fs.constants.R_OK);
+    try {
+        fs.accessSync(includedFile, fs.constants.R_OK);
 
-    if (config.extensions.hasOwnProperty(extension)) {
-        language = config.extensions[extension];
+        if (config.extensions.hasOwnProperty(extension)) {
+            language = config.extensions[extension];
+        }
+        let includedContents = fs.readFileSync(includedFile, 'utf8');
+
+        includedContents = replacePatterns(config, includedContents);
+        output = output.replace(
+            `{{${includedFile}}}`,
+            `\`\`\`${language}\n${includedContents}\n\`\`\``
+        );
+    } catch (ex) {
+        console.warn(`WARNING! Match {{${includedFile}}} did not have a ` +
+            'corresponding file');
     }
-    let includedContents = fs.readFileSync(includedFile, 'utf8');
-
-    includedContents = replacePatterns(config, includedContents);
-    output = output.replace(
-        `{{${includedFile}}}`,
-        `\`\`\`${language}\n${includedContents}\n\`\`\``
-    );
     return output;
 }
 
@@ -362,13 +322,65 @@ module.exports = processor;
 /* 3 */
 /***/ (function(module, exports) {
 
-function webpackEmptyContext(req) {
-	throw new Error("Cannot find module '" + req + "'.");
-}
-webpackEmptyContext.keys = function() { return []; };
-webpackEmptyContext.resolve = webpackEmptyContext;
-module.exports = webpackEmptyContext;
-webpackEmptyContext.id = 3;
+module.exports = {
+    outputFile: 'README.md',
+    inputFile: 'README.librarity.md',
+    replacePatterns: [],
+    confirmOverwrite: true,
+    extensions: {
+        '.md': 'markdown',
+        '.rb': 'ruby',
+        '.php': 'php',
+        '.phtml': 'php',
+        '.php3': 'php',
+        '.php4': 'php',
+        '.php5': 'php',
+        '.php7': 'php',
+        '.phps': 'php',
+        '.pl': 'perl',
+        '.pm': 'perl',
+        '.t': 'perl',
+        '.pod': 'perl',
+        '.py': 'python',
+        '.pyw': 'python',
+        '.xml': 'xml',
+        '.html': 'xml',
+        '.htmls': 'xml',
+        '.htm': 'xml',
+        '.css': 'css',
+        '.less': 'css',
+        '.json': 'json',
+        '.js': 'javascript',
+        '.coffee': 'coffeescript',
+        '.litcoffee': 'coffeescript',
+        '.sql': 'sql',
+        '.java': 'java',
+        '.pas': 'delphi',
+        '.pp': 'delphi',
+        '.p': 'delphi',
+        '.scpt': 'applescript',
+        '.scptd': 'applescript',
+        '.applescript': 'applescript',
+        '.c': 'cpp',
+        '.h': 'cpp',
+        '.cpp': 'cpp',
+        '.objc': 'objectivec',
+        '.ini': 'ini',
+        '.cs': 'cs',
+        '.vala': 'vala',
+        '.d': 'd',
+        '.diff': 'diff',
+        '.bat': 'dos',
+        '.sh': 'bash',
+        '.bash': 'bash',
+        '.asm': 'avrasm',
+        '.vhdl': 'vhdl',
+        '.tex': 'tex',
+        '.latex': 'tex',
+        '.hk': 'haskell'
+    }
+};
+
 
 /***/ }),
 /* 4 */
@@ -405,6 +417,12 @@ module.exports = require("path");
 /***/ (function(module, exports) {
 
 module.exports = require("readline");
+
+/***/ }),
+/* 7 */
+/***/ (function(module, exports) {
+
+module.exports = require("vm");
 
 /***/ })
 /******/ ])));

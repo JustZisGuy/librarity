@@ -7,7 +7,12 @@
         "generator",
         "import",
         "include",
-        "markdown"
+        "markdown",
+        "cli",
+        "code",
+        "blocks",
+        "github",
+        "tool"
     ],
     "author": "Magnus Weinberg <magnus.weinberg@gmail.com>",
     "license": "MIT",
@@ -28,9 +33,10 @@
         "nyc": "^10.2.0"
     },
     "scripts": {
-        "eslint": "eslint src test",
+        "readme": "node dist/index.js librarity_config.js",
+        "eslint": "eslint src test *.js",
         "test": "nyc --reporter=html --reporter=text ava test/*.js",
         "coverage": "nyc report --reporter=text-lcov | coveralls",
-        "build": "npm run eslint && npm test && webpack"
+        "build": "npm run eslint && npm test && webpack && npm run readme"
     }
 }

@@ -325,7 +325,9 @@ test('Confirm overwrite does not write file if n is chosen', (t) => {
     }
 });
 
-test('File with unsupported extension is included correctly', (t) => {
+test(
+    'File with unsupported extension is included correctly and unfound block ' +
+        'simply passed along', (t) => {
     process.argv = [
         'node',
         './dist/index.js',

@@ -1,70 +1,16 @@
 /* eslint-disable no-console */
 const fs = require('fs');
-
-const config = {
-    outputFile: 'README.md',
-    inputFile: 'README.librarity.md',
-    replacePatterns: [],
-    confirmOverwrite: true,
-    extensions: {
-        '.md': 'markdown',
-        '.rb': 'ruby',
-        '.php': 'php',
-        '.phtml': 'php',
-        '.php3': 'php',
-        '.php4': 'php',
-        '.php5': 'php',
-        '.php7': 'php',
-        '.phps': 'php',
-        '.pl': 'perl',
-        '.pm': 'perl',
-        '.t': 'perl',
-        '.pod': 'perl',
-        '.py': 'python',
-        '.pyw': 'python',
-        '.xml': 'xml',
-        '.html': 'xml',
-        '.htmls': 'xml',
-        '.htm': 'xml',
-        '.css': 'css',
-        '.less': 'css',
-        '.json': 'json',
-        '.js': 'javascript',
-        '.coffee': 'coffeescript',
-        '.litcoffee': 'coffeescript',
-        '.sql': 'sql',
-        '.java': 'java',
-        '.pas': 'delphi',
-        '.pp': 'delphi',
-        '.p': 'delphi',
-        '.scpt': 'applescript',
-        '.scptd': 'applescript',
-        '.applescript': 'applescript',
-        '.c': 'cpp',
-        '.h': 'cpp',
-        '.cpp': 'cpp',
-        '.objc': 'objectivec',
-        '.ini': 'ini',
-        '.cs': 'cs',
-        '.vala': 'vala',
-        '.d': 'd',
-        '.diff': 'diff',
-        '.bat': 'dos',
-        '.sh': 'bash',
-        '.bash': 'bash',
-        '.asm': 'avrasm',
-        '.vhdl': 'vhdl',
-        '.tex': 'tex',
-        '.latex': 'tex',
-        '.hk': 'haskell'
-    }
-};
+const vm = require('vm');
+const config = require('./default_config.js');
 
 function getTypeOf(value) {
     let keyType = typeof value;
 
     if (keyType === 'object' && Array.isArray(value)) {
         keyType = 'array';
+    }
+    if (keyType === 'object' && value.constructor.name === 'RegExp') {
+        keyType = 'regex';
     }
     return keyType;
 }
@@ -115,8 +61,9 @@ const validators = {
             // patterns first part must be a string or a regex
             validPattern = validPattern && (
                 typeof replacePattern[0] === 'string' ||
-                replacePattern[0] instanceof RegExp
+                getTypeOf(replacePattern[0]) === 'regex'
             );
+
             // patterns second part must be a string
             validPattern = validPattern && typeof replacePattern[1] === 'string';
             if (!validPattern) {
@@ -150,7 +97,15 @@ function readConfigFile(configFile) {
     let fileConfig;
 
     try {
-        fileConfig = require(configFile);
+        let code = fs.readFileSync(configFile, 'utf8');
+        let sandbox = vm.createContext({
+            module: {
+                exports: 0
+            }
+        });
+
+        vm.runInContext(code, sandbox);
+        fileConfig = Object.assign({}, sandbox.module.exports);
     } catch (ex) {
         console.error(`ERROR! Configuration file "${configFile}" could not be parsed`);
         process.exit(1);
