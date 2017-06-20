@@ -10,7 +10,7 @@ console.log('test', test);
 ```
 
 ```javascript
-/* eslint-disable no-console */
+/* eslint-disable no-console,import/no-unresolved */
 
 const test = require('../src');
 

@@ -3,12 +3,12 @@
 const helpParameter = process.argv[2] && process.argv[2] === '--help';
 
 function printHelp() {
-    console.error('Usage: librarity [path to config]');
+  console.error('Usage: librarity [path to config]');
 }
 
 if (helpParameter) {
-    printHelp();
-    process.exit(2);
+  printHelp();
+  process.exit(2);
 }
 const configFile = process.argv[2] ?
     `${process.cwd()}/${process.argv[2]}` :
