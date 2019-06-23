@@ -1,6 +1,6 @@
 /* eslint-disable no-console, global-require */
 
-const test = require('ava');
+const assert = require('assert');
 const sinon = require('sinon');
 const fs = require('fs');
 const clearRequire = require('clear-require');
@@ -32,355 +32,344 @@ function createInterface() {
     question: (message, callback) => {
       callback(readlineAnswer);
     },
-    close: () => {},
+    close: () => { },
   };
 }
 
-test.beforeEach(() => {
-  resetFlowVariables();
-  sinon.stub(readline, 'createInterface').callsFake(createInterface);
-  sinon.stub(console, 'error').callsFake((...args) => {
-    consoleError += `${util.format.apply(null, args)}\n`;
+describe('Librarity tests', () => {
+  beforeEach(() => {
+    resetFlowVariables();
+    sinon.stub(readline, 'createInterface').callsFake(createInterface);
+    sinon.stub(console, 'error').callsFake((...args) => {
+      consoleError += `${util.format.apply(null, args)}\n`;
+    });
+    sinon.stub(fs, 'writeFileSync').callsFake((outFile, output) => {
+      if (writeFileFail) {
+        throw new StubException('writeFileSync Failed');
+      }
+      if (outFile) {
+        writeFileContents = output;
+      }
+    });
   });
-  sinon.stub(fs, 'writeFileSync').callsFake((outFile, output) => {
-    if (writeFileFail) {
-      throw new StubException('writeFileSync Failed');
+
+  afterEach(() => {
+    console.error.restore();
+    readline.createInterface.restore();
+    clearRequire('../src/index.js');
+    clearRequire('../src/config.js');
+    clearRequire('../src/processor.js');
+    process.argv = argv;
+    fs.writeFileSync.restore();
+    if (process.exit.restore) {
+      process.exit.restore();
     }
-    if (outFile) {
-      writeFileContents = output;
+  });
+
+  it('Default config without a existing README.librarity.md fails', (done) => {
+    process.argv = [
+      'node',
+      './dist/index.js',
+    ];
+    sinon.stub(process, 'exit').callsFake((code) => {
+      throw new StubException(code);
+    });
+    try {
+      require('../src/index.js');
+      assert.error();
+    } catch (ex) {
+      assert.ok(ex.message);
     }
+    done();
   });
-});
 
-test.afterEach(() => {
-  console.error.restore();
-  readline.createInterface.restore();
-  clearRequire('../src/index.js');
-  clearRequire('../src/config.js');
-  clearRequire('../src/processor.js');
-  process.argv = argv;
-  fs.writeFileSync.restore();
-});
-
-test('Default config without a existing README.librarity.md fails', (t) => {
-  process.argv = [
-    'node',
-    './dist/index.js',
-  ];
-  sinon.stub(process, 'exit').callsFake((code) => {
-    throw new StubException(code);
+  it('The config with a non-existant inputFile fails', (done) => {
+    process.argv = [
+      'node',
+      './dist/index.js',
+      'test/files/no_input_file.config.js',
+    ];
+    sinon.stub(process, 'exit').callsFake((code) => {
+      throw new StubException(code);
+    });
+    try {
+      require('../src/index.js');
+      assert.error();
+    } catch (ex) {
+      assert.equal(consoleError, 'ERROR! inputFile is missing or not readable\n');
+    }
+    done();
   });
-  try {
-    require('../src/index.js');
-    process.exit.restore();
-    t.fail();
-  } catch (ex) {
-    process.exit.restore();
-    t.pass(ex.message);
-  }
-});
 
-test('The config with a non-existant inputFile fails', (t) => {
-  process.argv = [
-    'node',
-    './dist/index.js',
-    'test/files/no_input_file.config.js',
-  ];
-  sinon.stub(process, 'exit').callsFake((code) => {
-    throw new StubException(code);
+  it('The config with a non-writable outputFile fails', (done) => {
+    process.argv = [
+      'node',
+      './dist/index.js',
+      'test/files/non_writable_outputfile.config.js',
+    ];
+    sinon.stub(process, 'exit').callsFake((code) => {
+      throw new StubException(code);
+    });
+    try {
+      require('../src/index.js');
+      assert.fail();
+    } catch (ex) {
+      assert.equal(consoleError, 'ERROR! outputFile is not writable\n');
+    }
+    done();
   });
-  try {
-    require('../src/index.js');
-    process.exit.restore();
-    t.fail();
-  } catch (ex) {
-    process.exit.restore();
-    t.is(consoleError, 'ERROR! inputFile is missing or not readable\n');
-  }
-});
 
-test('The config with a non-writable outputFile fails', (t) => {
-  process.argv = [
-    'node',
-    './dist/index.js',
-    'test/files/non_writable_outputfile.config.js',
-  ];
-  sinon.stub(process, 'exit').callsFake((code) => {
-    throw new StubException(code);
+  it('The config with a invalid replacePattern fails', (done) => {
+    process.argv = [
+      'node',
+      './dist/index.js',
+      'test/files/invalid_replace_pattern.config.js',
+    ];
+    sinon.stub(process, 'exit').callsFake((code) => {
+      throw new StubException(code);
+    });
+    try {
+      require('../src/index.js');
+      assert.fail();
+    } catch (ex) {
+      assert.equal(consoleError, 'ERROR! replacePatterns contains a invalid pattern ' +
+        '"[0, invalid replace pattern]"\n');
+    }
+    done();
   });
-  try {
-    require('../src/index.js');
-    process.exit.restore();
-    t.fail();
-  } catch (ex) {
-    process.exit.restore();
-    t.is(consoleError, 'ERROR! outputFile is not writable\n');
-  }
-});
 
-test('The config with a invalid replacePattern fails', (t) => {
-  process.argv = [
-    'node',
-    './dist/index.js',
-    'test/files/invalid_replace_pattern.config.js',
-  ];
-  sinon.stub(process, 'exit').callsFake((code) => {
-    throw new StubException(code);
+  it('The config with a invalid extension fails', (done) => {
+    process.argv = [
+      'node',
+      './dist/index.js',
+      'test/files/invalid_extension.config.js',
+    ];
+    sinon.stub(process, 'exit').callsFake((code) => {
+      throw new StubException(code);
+    });
+    try {
+      require('../src/index.js');
+      assert.fail();
+    } catch (ex) {
+      assert.equal(consoleError, 'ERROR! Extensions contains invalid code ".invalid: -12"\n');
+    }
+    done();
   });
-  try {
-    require('../src/index.js');
-    process.exit.restore();
-    t.fail();
-  } catch (ex) {
-    process.exit.restore();
-    t.is(consoleError, 'ERROR! replacePatterns contains a invalid pattern ' +
-            '"[0, invalid replace pattern]"\n');
-  }
-});
 
-test('The config with a invalid extension fails', (t) => {
-  process.argv = [
-    'node',
-    './dist/index.js',
-    'test/files/invalid_extension.config.js',
-  ];
-  sinon.stub(process, 'exit').callsFake((code) => {
-    throw new StubException(code);
+  it('The config with a invalid setting fails', (done) => {
+    process.argv = [
+      'node',
+      './dist/index.js',
+      'test/files/invalid_setting.config.js',
+    ];
+    sinon.stub(process, 'exit').callsFake((code) => {
+      throw new StubException(code);
+    });
+    try {
+      require('../src/index.js');
+      assert.fail();
+    } catch (ex) {
+      assert.equal(consoleError, 'ERROR! Invalid configuration key "invalid"\n');
+    }
+    done();
   });
-  try {
-    require('../src/index.js');
-    process.exit.restore();
-    t.fail();
-  } catch (ex) {
-    process.exit.restore();
-    t.is(consoleError, 'ERROR! Extensions contains invalid code ".invalid: -12"\n');
-  }
-});
 
-test('The config with a invalid setting fails', (t) => {
-  process.argv = [
-    'node',
-    './dist/index.js',
-    'test/files/invalid_setting.config.js',
-  ];
-  sinon.stub(process, 'exit').callsFake((code) => {
-    throw new StubException(code);
+  it('The config with a bad config key fails', (done) => {
+    process.argv = [
+      'node',
+      './dist/index.js',
+      'test/files/bad_config_key.config.js',
+    ];
+    sinon.stub(process, 'exit').callsFake((code) => {
+      throw new StubException(code);
+    });
+    try {
+      require('../src/index.js');
+      assert.fail();
+    } catch (ex) {
+      assert.equal(
+        consoleError,
+        'ERROR! Configuration key "replacePatterns" can only be a ' +
+        '"array" value, "string" found\n',
+      );
+    }
+    done();
   });
-  try {
-    require('../src/index.js');
-    process.exit.restore();
-    t.fail();
-  } catch (ex) {
-    process.exit.restore();
-    t.is(consoleError, 'ERROR! Invalid configuration key "invalid"\n');
-  }
-});
 
-test('The config with a bad config key fails', (t) => {
-  process.argv = [
-    'node',
-    './dist/index.js',
-    'test/files/bad_config_key.config.js',
-  ];
-  sinon.stub(process, 'exit').callsFake((code) => {
-    throw new StubException(code);
+  it('The config with a proper config file but with a write error', (done) => {
+    process.argv = [
+      'node',
+      './dist/index.js',
+      'test/files/successful.config.js',
+    ];
+    writeFileFail = true;
+    sinon.stub(process, 'exit').callsFake((code) => {
+      throw new StubException(code);
+    });
+    try {
+      require('../src/index.js');
+      assert.fail();
+    } catch (ex) {
+      assert.ok(ex);
+    }
+    done();
   });
-  try {
-    require('../src/index.js');
-    process.exit.restore();
-    t.fail();
-  } catch (ex) {
-    process.exit.restore();
-    t.is(
-            consoleError,
-            'ERROR! Configuration key "replacePatterns" can only be a ' +
-                '"array" value, "string" found\n',
-        );
-  }
-});
 
-test('The config with a proper config file but with a write error', (t) => {
-  process.argv = [
-    'node',
-    './dist/index.js',
-    'test/files/successful.config.js',
-  ];
-  writeFileFail = true;
-  sinon.stub(process, 'exit').callsFake((code) => {
-    throw new StubException(code);
+  it('The config with a proper config file and write permission', (done) => {
+    process.argv = [
+      'node',
+      './dist/index.js',
+      'test/files/successful.config.js',
+    ];
+    sinon.stub(process, 'exit').callsFake((code) => {
+      throw new StubException(code);
+    });
+    try {
+      require('../src/index.js');
+      assert.equal(fs.readFileSync('test/files/README.successful.out.md', 'utf8'), writeFileContents);
+    } catch (ex) {
+      assert.fail(ex);
+    }
+    done();
   });
-  try {
-    require('../src/index.js');
-    process.exit.restore();
-    t.fail();
-  } catch (ex) {
-    process.exit.restore();
-    t.pass(ex);
-  }
-});
 
-test('The config with a proper config file and write permission', (t) => {
-  process.argv = [
-    'node',
-    './dist/index.js',
-    'test/files/successful.config.js',
-  ];
-  sinon.stub(process, 'exit').callsFake((code) => {
-    throw new StubException(code);
-  });
-  try {
-    require('../src/index.js');
-    process.exit.restore();
-    t.is(fs.readFileSync('test/files/README.successful.out.md', 'utf8'), writeFileContents);
-  } catch (ex) {
-    process.exit.restore();
-    t.fail(ex);
-  }
-});
-
-test(
+  it(
     `
-        The config with a proper config file and write permission but
-        without matching replacePatterns
-    `, (t) => {
-  process.argv = [
-    'node',
-    './dist/index.js',
-    'test/files/non_matching_replace.config.js',
-  ];
-  sinon.stub(process, 'exit').callsFake((code) => {
-    throw new StubException(code);
-  });
-  try {
-    require('../src/index.js');
-    process.exit.restore();
-    t.is(
-            fs.readFileSync('test/files/README.non_matching_replace.out.md', 'utf8'),
-            writeFileContents,
+          The config with a proper config file and write permission but
+          without matching replacePatterns
+      `, (done) => {
+    process.argv = [
+      'node',
+      './dist/index.js',
+      'test/files/non_matching_replace.config.js',
+    ];
+    sinon.stub(process, 'exit').callsFake((code) => {
+      throw new StubException(code);
+    });
+    try {
+      require('../src/index.js');
+      assert.equal(
+          fs.readFileSync('test/files/README.non_matching_replace.out.md', 'utf8'),
+          writeFileContents,
         );
-  } catch (ex) {
-    process.exit.restore();
-    t.fail(ex);
-  }
-});
-
-test('running with --help prints help message', (t) => {
-  process.argv = [
-    'node',
-    './dist/index.js',
-    '--help',
-  ];
-  sinon.stub(process, 'exit').callsFake((code) => {
-    throw new StubException(code);
-  });
-  try {
-    require('../src/index.js');
-    process.exit.restore();
-    t.fail();
-  } catch (ex) {
-    process.exit.restore();
-    t.is(consoleError, 'Usage: librarity [path to config]\n');
-  }
-});
-
-test('Confirm overwrite writes file if Y is chosen', (t) => {
-  process.argv = [
-    'node',
-    './dist/index.js',
-    'test/files/confirm_overwrite.config.js',
-  ];
-  sinon.stub(process, 'exit').callsFake((code) => {
-    throw new StubException(code);
-  });
-  readlineAnswer = 'Y';
-  try {
-    require('../src/index.js');
-    process.exit.restore();
-    if (writeFileContents !== '') {
-      t.pass();
-    } else {
-      t.fail();
+    } catch (ex) {
+      assert.fail(ex);
     }
-  } catch (ex) {
-    process.exit.restore();
-    t.fail(ex);
-  }
-});
-
-test('Confirm overwrite does not write file if n is chosen', (t) => {
-  process.argv = [
-    'node',
-    './dist/index.js',
-    'test/files/confirm_overwrite.config.js',
-  ];
-  sinon.stub(process, 'exit').callsFake((code) => {
-    throw new StubException(code);
+    done();
   });
-  try {
-    require('../src/index.js');
-    process.exit.restore();
-    t.is('', writeFileContents);
-  } catch (ex) {
-    process.exit.restore();
-    t.fail(ex);
-  }
-});
 
-test(
+  it('running with --help prints help message', (done) => {
+    process.argv = [
+      'node',
+      './dist/index.js',
+      '--help',
+    ];
+    sinon.stub(process, 'exit').callsFake((code) => {
+      throw new StubException(code);
+    });
+    try {
+      require('../src/index.js');
+      assert.fail();
+    } catch (ex) {
+      assert.equal(consoleError, 'Usage: librarity [path to config]\n');
+    }
+    done();
+  });
+
+  it('Confirm overwrite writes file if Y is chosen', (done) => {
+    process.argv = [
+      'node',
+      './dist/index.js',
+      'test/files/confirm_overwrite.config.js',
+    ];
+    sinon.stub(process, 'exit').callsFake((code) => {
+      throw new StubException(code);
+    });
+    readlineAnswer = 'Y';
+    try {
+      require('../src/index.js');
+      if (writeFileContents !== '') {
+        assert.ok('passed');
+      } else {
+        assert.fail();
+      }
+    } catch (ex) {
+      assert.fail(ex);
+    }
+    done();
+  });
+
+  it('Confirm overwrite does not write file if n is chosen', (done) => {
+    process.argv = [
+      'node',
+      './dist/index.js',
+      'test/files/confirm_overwrite.config.js',
+    ];
+    sinon.stub(process, 'exit').callsFake((code) => {
+      throw new StubException(code);
+    });
+    try {
+      require('../src/index.js');
+      assert.equal('', writeFileContents);
+    } catch (ex) {
+      assert.fail(ex);
+    }
+    done();
+  });
+
+  it(
     'File with unsupported extension is included correctly and unfound block ' +
-        'simply passed along', (t) => {
-  process.argv = [
-    'node',
-    './dist/index.js',
-    'test/files/block.config.js',
-  ];
-  sinon.stub(process, 'exit').callsFake((code) => {
-    throw new StubException(code);
+    'simply passed along', (done) => {
+    process.argv = [
+      'node',
+      './dist/index.js',
+      'test/files/block.config.js',
+    ];
+    sinon.stub(process, 'exit').callsFake((code) => {
+      throw new StubException(code);
+    });
+    try {
+      require('../src/index.js');
+      assert.equal(fs.readFileSync('test/files/README.block.out.md', 'utf8'), writeFileContents);
+    } catch (ex) {
+      assert.fail(ex);
+    }
+    done();
   });
-  try {
-    require('../src/index.js');
-    process.exit.restore();
-    t.is(fs.readFileSync('test/files/README.block.out.md', 'utf8'), writeFileContents);
-  } catch (ex) {
-    process.exit.restore();
-    t.fail(ex);
-  }
-});
 
-test('File without {{...}} blocks are returned as is', (t) => {
-  process.argv = [
-    'node',
-    './dist/index.js',
-    'test/files/unchanging.config.js',
-  ];
-  sinon.stub(process, 'exit').callsFake((code) => {
-    throw new StubException(code);
+  it('File without {{...}} blocks are returned as is', (done) => {
+    process.argv = [
+      'node',
+      './dist/index.js',
+      'test/files/unchanging.config.js',
+    ];
+    sinon.stub(process, 'exit').callsFake((code) => {
+      throw new StubException(code);
+    });
+    try {
+      require('../src/index.js');
+      assert.equal(fs.readFileSync('test/files/README.successful.out.md', 'utf8'), writeFileContents);
+    } catch (ex) {
+      assert.fail(ex);
+    }
+    done();
   });
-  try {
-    require('../src/index.js');
-    process.exit.restore();
-    t.is(fs.readFileSync('test/files/README.successful.out.md', 'utf8'), writeFileContents);
-  } catch (ex) {
-    process.exit.restore();
-    t.fail(ex);
-  }
-});
 
-test('A broken config throws an error', (t) => {
-  process.argv = [
-    'node',
-    './dist/index.js',
-    'test/files/broken.config.js',
-  ];
-  sinon.stub(process, 'exit').callsFake((code) => {
-    throw new StubException(code);
+  it('A broken config throws an error', (done) => {
+    process.argv = [
+      'node',
+      './dist/index.js',
+      'test/files/broken.config.js',
+    ];
+    sinon.stub(process, 'exit').callsFake((code) => {
+      throw new StubException(code);
+    });
+    try {
+      require('../src/index.js');
+      assert.fail();
+    } catch (ex) {
+      assert.ok(ex);
+    }
+    done();
   });
-  try {
-    require('../src/index.js');
-    process.exit.restore();
-    t.fail();
-  } catch (ex) {
-    process.exit.restore();
-    t.pass(ex);
-  }
 });

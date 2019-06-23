@@ -5,6 +5,7 @@
     "node": true,
     "browser": false,
     "es6": true,
-    "amd": true
+    "amd": true,
+    "mocha": true
   }
 }
